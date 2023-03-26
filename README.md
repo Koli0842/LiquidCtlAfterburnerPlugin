@@ -1,8 +1,7 @@
-# Libre Hardware Monitor Plugin for MSI Afterburner
+# LiquidCTL Plugin for MSI Afterburner
 
-This is a monitoring plugin for [MSI Afterburner](https://www.msi.com/Landing/afterburner) that exposes hardware monitoring data provided by [Libre Hardware Monitor](https://github.com/LiquidCtl/LiquidCtl) library.
-
-You can use it to get motherboard temperatures, fan speeds, etc. that are not built-in to Afterburner and RTSS OSD without running external monitoring software.
+This is a monitoring plugin for [MSI Afterburner](https://www.msi.com/Landing/afterburner) that exposes generic AIO data provided by [LiquidCtl](https://github.com/LiquidCtl/LiquidCtl).
+Codebase is heavily inspired by https://github.com/ts-korhonen/LibreHardwareMonitorAfterburnerPlugin and https://github.com/SuspiciousActivity/FanControl.Liquidctl, given my lack of knowledge in the C# / Microsoft ecosystem, huge thanks to them.
 
 ## Requirements
 
@@ -11,11 +10,13 @@ You can use it to get motherboard temperatures, fan speeds, etc. that are not bu
 
 ## Installing
 
-Download latest release of `LiquidCtl.dll` [here](https://github.com/ts-korhonen/LiquidCtlAfterburnerPlugin/releases) and place in into `Plugins/Monitoring` of MSI Afterburner installation folder.
+Download latest release of `LiquidCtl.dll` [here](https://github.com/Koli0842/LiquidCtlAfterburnerPlugin/releases) and place in into `Plugins/Monitoring` of MSI Afterburner installation folder.
+
+Download the latest release of [SuspiciousActivity's liquidctl fork](https://github.com/SuspiciousActivity/liquidctl) and place it next to the dll from the last step.
+
+Additionally you need to put `Newtonsoft.Json.dll` into the root folder of MSI Afterburner.
 
 E.g. `C:\Program Files (x86)\MSI Afterburner\Plugins\Monitoring`
-
-Plugin is standalone, it doesn't need Libre Hardware Monitor to be installed or running.
 
 ## Setup
 
@@ -23,7 +24,7 @@ Start MSI Afterburner and go to `Settings > Monitoring` and click `[...]` button
 
 In the list of `Active plugin modules` select and activate the checkmark next to `LiquidCtl.dll`.
 
-Click `Setup` to open plugin setup dialog where you can select which hardware and sensor types you want to monitor.
+Setup button is disabled, current implementation exposes all hardware reported by LiquidCtl.
 
 Afterburner should now be populated with discovered sensors.
 
@@ -31,7 +32,7 @@ Afterburner should now be populated with discovered sensors.
 
 Exit MSI Afterburner and delete `LiquidCtl.dll` you installed earlier.
 
-In the same folder delete `LiquidCtl.sys` and `LiquidCtl.dll.log` if they exist.
+In the same folder delete `LiquidCtl.dll.log` if they exist. You can clean up `Newtonsoft.Json.dll` aswell from the root folder aswell.
 
 ## License
 
