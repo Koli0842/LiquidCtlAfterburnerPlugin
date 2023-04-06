@@ -4,12 +4,9 @@
 
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace LiquidCtlAfterburnerPlugin
 {
@@ -20,8 +17,9 @@ namespace LiquidCtlAfterburnerPlugin
     public class Exports
     {
         private static readonly List<SensorSource> _devices = new List<SensorSource>();
+        private static Dictionary<int, SensorSource> _devicesMapping = new Dictionary<int, SensorSource>();
+        private static Dictionary<int, int> _indexOffsetMapping = new Dictionary<int, int>();
         private static Boolean hasBeenInitialized = false;
-        private static Task LiquidCtlCliPollTask;
 
         [DllExport]
         public static bool SetupSource(uint dwIndex, IntPtr hWnd)
@@ -36,16 +34,11 @@ namespace LiquidCtlAfterburnerPlugin
             {
                 if (!hasBeenInitialized)
                     Initialize();
-                return (uint)_devices.First().SensorCount;
+                return (uint)_devices.Select(d => d.SensorCount).Sum();
             }
             catch (Exception e)
             {
-                try
-                {
-                    File.AppendAllText(System.Reflection.Assembly.GetExecutingAssembly().Location + ".log", $"{DateTime.Now:s}: {e}\r\n");
-                }
-                catch { }
-
+                Log(e.ToString());
                 return 0u;
             }
         }
@@ -57,18 +50,13 @@ namespace LiquidCtlAfterburnerPlugin
             {
                 if (!hasBeenInitialized)
                     Initialize();
-                _devices.First().FillDescription((int)dwIndex, ref pDesc);
+                _devicesMapping[(int)dwIndex].FillDescription(GetOffsetIndex(dwIndex), ref pDesc);
 
                 return true;
             }
             catch (Exception e)
             {
-                try
-                {
-                    File.AppendAllText(System.Reflection.Assembly.GetExecutingAssembly().Location + ".log", $"{DateTime.Now:s}: {e}\r\n");
-                }
-                catch { }
-
+                Log(e.ToString());
                 return false;
             }
         }
@@ -80,34 +68,67 @@ namespace LiquidCtlAfterburnerPlugin
             {
                 if (!hasBeenInitialized)
                     Initialize();
-                if (LiquidCtlCliPollTask == null || LiquidCtlCliPollTask.IsCompleted)
-                    LiquidCtlCliPollTask = Task.Run(() => _devices.First()._device.LoadJSON());
-                return _devices.First().SensorValue((int)dwIndex);
+
+                _devicesMapping[(int)dwIndex].Reload();
+                return _devicesMapping[(int)dwIndex].SensorValue(GetOffsetIndex(dwIndex));
             }
             catch (Exception e)
             {
-                try
-                {
-                    File.AppendAllText(System.Reflection.Assembly.GetExecutingAssembly().Location + ".log", $"{DateTime.Now:s}: {e}\r\n");
-                }
-                catch { }
-
+                Log(e.ToString());
                 return 0f;
             }
         }
 
         private static void Initialize()
         {
-            File.AppendAllText(System.Reflection.Assembly.GetExecutingAssembly().Location + ".log", $"{DateTime.Now:s}: Plugin started\r\n");
+            Log("Plugin started");
             LiquidctlCLIWrapper.Initialize();
             List<LiquidctlStatusJSON> input = LiquidctlCLIWrapper.ReadStatus();
             foreach (LiquidctlStatusJSON liquidctl in input)
             {
                 LiquidctlDevice device = new LiquidctlDevice(liquidctl);
-                File.AppendAllText(System.Reflection.Assembly.GetExecutingAssembly().Location + ".log", $"{DateTime.Now:s}: {device.GetDeviceInfo()}\r\n");
-                _devices.Add(new SensorSource(device));
+                if (0 < device.status.Count)
+                {
+                    Log(device.GetDeviceInfo());
+                    _devices.Add(new SensorSource(device));
+                }
             }
+            FillDeviceMapping();
             hasBeenInitialized = true;
+        }
+
+        private static void FillDeviceMapping()
+        {
+            using(IEnumerator<SensorSource> enumerator = _devices.GetEnumerator())
+            {
+                enumerator.MoveNext();
+                int storedDeviceLastIndex = 0;
+                int sensorCount = _devices.Select(d => d.SensorCount).Sum();
+                for(int i = 0; i < sensorCount; i++)
+                {
+                    if (enumerator.Current.SensorCount + storedDeviceLastIndex == i)
+                    {
+                        enumerator.MoveNext();
+                        storedDeviceLastIndex = i;
+                    }
+                    _devicesMapping.Add(i, enumerator.Current);
+                    _indexOffsetMapping.Add(i, storedDeviceLastIndex);
+                }
+            }
+        }
+
+        private static int GetOffsetIndex(uint dwIndex)
+        {
+            return (int)dwIndex - _indexOffsetMapping[(int)dwIndex];
+        }
+
+        private static void Log(string message)
+        {
+            try
+            {
+                File.AppendAllText(System.Reflection.Assembly.GetExecutingAssembly().Location + ".log", $"{DateTime.Now:s}: {message}\r\n");
+            }
+            catch { }
         }
     }
 }
