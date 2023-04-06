@@ -2,12 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using System.Timers;
+using System.Text.RegularExpressions;
 
 namespace LiquidCtlAfterburnerPlugin
 {
@@ -15,6 +11,7 @@ namespace LiquidCtlAfterburnerPlugin
     {
 
         public readonly LiquidctlDevice _device;
+        private Task LiquidCtlPollTask;
 
         public SensorSource(LiquidctlDevice device)
         {
@@ -23,21 +20,22 @@ namespace LiquidCtlAfterburnerPlugin
 
         public void Reload()
         {
-            _device.LoadJSON();
+            if (LiquidCtlPollTask == null || LiquidCtlPollTask.IsCompleted)
+                LiquidCtlPollTask = Task.Run(() => _device.LoadJSON());
         }
 
         public int SensorCount => _device.status.Count;
 
         public float SensorValue(int index)
         {
-            return (float) _device.status[index].value;
+            return (float) _device.status[index].GetValueAsFloat();
         }
 
         public void FillDescription(int index, ref MonitoringSourceDesc desc)
         {
             LiquidctlStatusJSON.StatusRecord status = _device.status[index];
 
-            desc.szName = $"AIO {status.key}";
+            desc.szName = $"{Regex.Match(_device.name, @"\w+ \w+").Groups[0].Value} {status.key}";
 
             desc.szUnits = status.unit;
 

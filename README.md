@@ -12,7 +12,7 @@ Codebase is heavily inspired by https://github.com/ts-korhonen/LibreHardwareMoni
 
 Download latest release of `LiquidCtl.dll` [here](https://github.com/Koli0842/LiquidCtlAfterburnerPlugin/releases) and place in into `Plugins/Monitoring` of MSI Afterburner installation folder.
 
-Download the latest release of [SuspiciousActivity's liquidctl fork](https://github.com/SuspiciousActivity/liquidctl) and place it next to the dll from the last step.
+Download the latest release of [SuspiciousActivity's liquidctl fork](https://github.com/SuspiciousActivity/liquidctl) and place it next to the dll from the last step. Tested with 1.0.1
 
 Additionally you need to put `Newtonsoft.Json.dll` into the root folder of MSI Afterburner.
 
